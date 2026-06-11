@@ -28,7 +28,7 @@ import { config as loadEnv } from 'dotenv';
 
 // -- Constants ---------------------------------------------------------------
 
-const USER_DIR = join(homedir(), '.follow-builders');
+const USER_DIR = process.env.FOLLOW_BUILDERS_USER_DIR || join(homedir(), '.follow-builders');
 const CONFIG_PATH = join(USER_DIR, 'config.json');
 const ENV_PATH = join(USER_DIR, '.env');
 
@@ -127,6 +127,7 @@ async function sendTelegram(text, botToken, chatId) {
 // Sends the digest via Resend's email API.
 // The user provides their own Resend API key and email address.
 async function sendEmail(text, apiKey, toEmail) {
+  const fromEmail = process.env.RESEND_FROM_EMAIL || 'AI Builders Digest <onboarding@resend.dev>';
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: {
@@ -134,7 +135,7 @@ async function sendEmail(text, apiKey, toEmail) {
       'Authorization': `Bearer ${apiKey}`
     },
     body: JSON.stringify({
-      from: 'AI Builders Digest <digest@resend.dev>',
+      from: fromEmail,
       to: [toEmail],
       subject: `AI Builders Digest — ${new Date().toLocaleDateString('en-US', {
         weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
@@ -187,6 +188,9 @@ async function main() {
       case 'email': {
         const apiKey = process.env.RESEND_API_KEY;
         const toEmail = delivery.email;
+        if (delivery.fromEmail && !process.env.RESEND_FROM_EMAIL) {
+          process.env.RESEND_FROM_EMAIL = delivery.fromEmail;
+        }
         if (!apiKey) throw new Error('RESEND_API_KEY not found in .env');
         if (!toEmail) throw new Error('delivery.email not found in config.json');
         await sendEmail(digestText, apiKey, toEmail);

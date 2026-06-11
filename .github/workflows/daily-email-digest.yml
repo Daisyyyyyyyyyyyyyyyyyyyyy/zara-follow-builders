@@ -1,0 +1,65 @@
+name: Daily Email Digest
+
+on:
+  schedule:
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: daily-email-digest
+  cancel-in-progress: false
+
+jobs:
+  send-digest:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: scripts/package-lock.json
+
+      - name: Install dependencies
+        working-directory: scripts
+        run: npm ci
+
+      - name: Create runtime config
+        working-directory: scripts
+        env:
+          DIGEST_TO_EMAIL: ${{ secrets.DIGEST_TO_EMAIL }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          RESEND_FROM_EMAIL: ${{ secrets.RESEND_FROM_EMAIL }}
+          DIGEST_LANGUAGE: ${{ vars.DIGEST_LANGUAGE }}
+        run: node setup-cloud-config.js
+
+      - name: Generate digest with GLM
+        working-directory: scripts
+        env:
+          GLM_API_KEY: ${{ secrets.GLM_API_KEY }}
+          GLM_BASE_URL: ${{ vars.GLM_BASE_URL }}
+          GLM_MODEL: ${{ vars.GLM_MODEL }}
+          FOLLOW_BUILDERS_REMOTE_BASE: ${{ vars.FOLLOW_BUILDERS_REMOTE_BASE }}
+        run: node generate-digest.js > "$RUNNER_TEMP/follow-builders-digest.txt"
+
+      - name: Send digest email
+        working-directory: scripts
+        env:
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          RESEND_FROM_EMAIL: ${{ secrets.RESEND_FROM_EMAIL }}
+        run: node deliver.js --file "$RUNNER_TEMP/follow-builders-digest.txt"
+
+      - name: Upload digest artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: follow-builders-digest
+          path: ${{ runner.temp }}/follow-builders-digest.txt
+          if-no-files-found: ignore

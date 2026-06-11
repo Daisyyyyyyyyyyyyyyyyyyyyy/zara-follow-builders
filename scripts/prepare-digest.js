@@ -23,14 +23,16 @@ import { homedir } from 'os';
 
 // -- Constants ---------------------------------------------------------------
 
-const USER_DIR = join(homedir(), '.follow-builders');
+const USER_DIR = process.env.FOLLOW_BUILDERS_USER_DIR || join(homedir(), '.follow-builders');
 const CONFIG_PATH = join(USER_DIR, 'config.json');
 
-const FEED_X_URL = 'https://raw.githubusercontent.com/zarazhangrui/follow-builders/main/feed-x.json';
-const FEED_PODCASTS_URL = 'https://raw.githubusercontent.com/zarazhangrui/follow-builders/main/feed-podcasts.json';
-const FEED_BLOGS_URL = 'https://raw.githubusercontent.com/zarazhangrui/follow-builders/main/feed-blogs.json';
+const REMOTE_BASE = process.env.FOLLOW_BUILDERS_REMOTE_BASE ||
+  'https://raw.githubusercontent.com/zarazhangrui/follow-builders/main';
+const FEED_X_URL = process.env.FOLLOW_BUILDERS_FEED_X_URL || `${REMOTE_BASE}/feed-x.json`;
+const FEED_PODCASTS_URL = process.env.FOLLOW_BUILDERS_FEED_PODCASTS_URL || `${REMOTE_BASE}/feed-podcasts.json`;
+const FEED_BLOGS_URL = process.env.FOLLOW_BUILDERS_FEED_BLOGS_URL || `${REMOTE_BASE}/feed-blogs.json`;
 
-const PROMPTS_BASE = 'https://raw.githubusercontent.com/zarazhangrui/follow-builders/main/prompts';
+const PROMPTS_BASE = process.env.FOLLOW_BUILDERS_PROMPTS_BASE || `${REMOTE_BASE}/prompts`;
 const PROMPT_FILES = [
   'summarize-podcast.md',
   'summarize-tweets.md',
