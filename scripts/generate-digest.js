@@ -10,7 +10,20 @@ const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
 const PREPARE_SCRIPT = join(SCRIPT_DIR, 'prepare-digest.js');
 const DEFAULT_BASE_URL = 'https://api.z.ai/api/coding/paas/v4';
 const DEFAULT_MODEL = 'glm-4.7';
-const REQUEST_TIMEOUT_MS = 180000;
+const DEFAULT_REQUEST_TIMEOUT_MS = 420000;
+
+function resolveRequestTimeoutMs() {
+  const rawTimeout = getEnv('GLM_REQUEST_TIMEOUT_MS') || getEnv('OPENAI_REQUEST_TIMEOUT_MS');
+  const parsedTimeout = Number.parseInt(rawTimeout, 10);
+
+  if (Number.isFinite(parsedTimeout) && parsedTimeout > 0) {
+    return parsedTimeout;
+  }
+
+  return DEFAULT_REQUEST_TIMEOUT_MS;
+}
+
+const REQUEST_TIMEOUT_MS = resolveRequestTimeoutMs();
 
 const SYSTEM_PROMPT = [
   'You are writing an AI Builders daily digest from structured JSON prepared by the follow-builders project.',
