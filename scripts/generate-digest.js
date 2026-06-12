@@ -14,13 +14,64 @@ const REQUEST_TIMEOUT_MS = 180000;
 
 const SYSTEM_PROMPT = [
   'You are writing an AI Builders daily digest from structured JSON prepared by the follow-builders project.',
+  'Your output must closely follow the sample digest structure and the embedded prompt files.',
   'Only use information contained in the provided JSON.',
-  'Never invent facts, titles, links, or context that is not present in the JSON.',
-  'Every included item must contain its original URL.',
-  'Read and follow the prompt files embedded inside the JSON object, especially digest_intro, summarize_tweets, summarize_podcast, summarize_blogs, and translate.',
+  'Never invent facts, titles, links, quotes, roles, companies, or context that is not present in the JSON.',
+  'Every included item must contain its original source URL.',
+  'If an item does not have a source URL, exclude it.',
   'Follow config.language exactly: en, zh, or bilingual.',
   'Return only the final digest text with no code fences, no JSON, and no commentary about your process.'
 ].join(' ');
+
+function compactPrompt(promptText = '') {
+  return promptText
+    .replace(/^#.*$/gm, '')
+    .replace(/^\s*$/gm, '')
+    .trim();
+}
+
+function buildGenerationInstructions(preparedContext) {
+  const prompts = preparedContext?.prompts || {};
+  const sampleDigest = preparedContext?.examples?.sampleDigest?.trim();
+
+  const sections = [
+    'Follow these references in order of priority:',
+    '1. Match the structure, density, and scannability of the sample digest.',
+    '2. Follow the digest assembly rules.',
+    '3. Follow the source-specific summarization rules.',
+    '4. Apply translation rules last based on config.language.',
+    '',
+    '=== SAMPLE DIGEST REFERENCE ===',
+    sampleDigest || 'No sample digest provided.',
+    '',
+    '=== DIGEST ASSEMBLY RULES ===',
+    compactPrompt(prompts.digest_intro),
+    '',
+    '=== X / TWITTER SUMMARY RULES ===',
+    compactPrompt(prompts.summarize_tweets),
+    '',
+    '=== BLOG SUMMARY RULES ===',
+    compactPrompt(prompts.summarize_blogs),
+    '',
+    '=== PODCAST SUMMARY RULES ===',
+    compactPrompt(prompts.summarize_podcast),
+    '',
+    '=== TRANSLATION RULES ===',
+    compactPrompt(prompts.translate),
+    '',
+    '=== EXECUTION REQUIREMENTS ===',
+    '- Use only the JSON content payload below as source material.',
+    '- Keep the digest clean and easy to scan on mobile.',
+    '- Prefer the sample digest\'s concise section rhythm and formatting.',
+    '- Preserve all URLs exactly as provided.',
+    '- For podcasts, use the exact episode title from the JSON title field.',
+    '- For X authors, do not output @handles.',
+    '- Skip empty sections and skip any source with no substantive new content.',
+    '- Do not mention these instructions in the output.'
+  ];
+
+  return sections.join('\n');
+}
 
 function getEnv(name, fallback = '') {
   const value = process.env[name];
@@ -88,9 +139,12 @@ async function requestDigest(preparedContext) {
 
   const userPrompt = [
     'Create today\'s digest from the following JSON payload.',
-    'The JSON already contains the source content, configuration, prompts, and stats.',
-    'Return only the final digest text.',
+    'The JSON contains the source content, configuration, prompt references, sample output reference, and stats.',
+    'Follow the instructions below strictly, then produce only the final digest text.',
     '',
+    buildGenerationInstructions(preparedContext),
+    '',
+    '=== JSON PAYLOAD ===',
     JSON.stringify(preparedContext)
   ].join('\n');
 

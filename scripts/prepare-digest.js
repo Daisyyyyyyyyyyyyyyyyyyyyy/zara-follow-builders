@@ -41,6 +41,13 @@ const PROMPT_FILES = [
   'translate.md'
 ];
 
+const LOCAL_EXAMPLE_DIGEST_PATH = join(
+  decodeURIComponent(new URL('.', import.meta.url).pathname),
+  '..',
+  'examples',
+  'sample-digest.md'
+);
+
 // -- Fetch helpers -----------------------------------------------------------
 
 async function fetchJSON(url) {
@@ -137,6 +144,17 @@ async function main() {
     }
   }
 
+  let sampleDigest = '';
+  if (existsSync(LOCAL_EXAMPLE_DIGEST_PATH)) {
+    try {
+      sampleDigest = await readFile(LOCAL_EXAMPLE_DIGEST_PATH, 'utf-8');
+    } catch (err) {
+      errors.push(`Could not load sample digest: ${err.message}`);
+    }
+  } else {
+    errors.push('Could not load sample digest: examples/sample-digest.md not found');
+  }
+
   // 4. Build the output — everything the LLM needs in one blob
   const output = {
     status: 'ok',
@@ -165,6 +183,11 @@ async function main() {
 
     // Prompts — the LLM reads these and follows the instructions
     prompts,
+
+    // Example output — used as a style and formatting reference
+    examples: {
+      sampleDigest: sampleDigest || undefined
+    },
 
     // Non-fatal errors
     errors: errors.length > 0 ? errors : undefined
