@@ -2,7 +2,10 @@ name: Daily Email Digest
 
 on:
   schedule:
-    - cron: '0 0 * * *'
+    # Run after the upstream feed refresh completes (Generate Feeds runs at 06:17 UTC).
+    # Using 07:00 UTC gives the upstream workflow time to fetch, commit, and publish
+    # the latest raw feed files before this digest job reads them.
+    - cron: '0 7 * * *'
   workflow_dispatch:
 
 permissions:
