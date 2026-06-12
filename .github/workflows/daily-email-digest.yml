@@ -21,12 +21,12 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
-          node-version: '20'
+          node-version: '22'
           cache: npm
           cache-dependency-path: scripts/package-lock.json
 
@@ -57,12 +57,26 @@ jobs:
         env:
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           RESEND_FROM_EMAIL: ${{ secrets.RESEND_FROM_EMAIL }}
-        run: node deliver.js --file "$RUNNER_TEMP/follow-builders-digest.txt"
+        shell: bash
+        run: |
+          set -o pipefail
+          node deliver.js --file "$RUNNER_TEMP/follow-builders-digest.txt" | tee "$RUNNER_TEMP/follow-builders-delivery.json"
+
+      - name: Print delivery result on failure
+        if: failure()
+        shell: bash
+        run: |
+          if [ -f "$RUNNER_TEMP/follow-builders-delivery.json" ]; then
+            echo "Delivery output:"
+            cat "$RUNNER_TEMP/follow-builders-delivery.json"
+          fi
 
       - name: Upload digest artifact
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: follow-builders-digest
-          path: ${{ runner.temp }}/follow-builders-digest.txt
+          path: |
+            ${{ runner.temp }}/follow-builders-digest.txt
+            ${{ runner.temp }}/follow-builders-delivery.json
           if-no-files-found: ignore

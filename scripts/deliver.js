@@ -145,8 +145,17 @@ async function sendEmail(text, apiKey, toEmail) {
   });
 
   if (!res.ok) {
-    const err = await res.json();
-    throw new Error(`Resend API error: ${err.message || JSON.stringify(err)}`);
+    const rawBody = await res.text();
+    let detail = rawBody;
+
+    try {
+      const err = JSON.parse(rawBody);
+      detail = err.message || err.error || JSON.stringify(err);
+    } catch {
+      // Keep the raw response body if it isn't valid JSON.
+    }
+
+    throw new Error(`Resend API error (${res.status} ${res.statusText}): ${detail}`);
   }
 }
 

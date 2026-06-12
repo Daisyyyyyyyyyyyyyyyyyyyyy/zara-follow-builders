@@ -81,6 +81,17 @@ AI Builders Digest <onboarding@resend.dev>
 
 Depending on your Resend account state, test-mode restrictions may apply.
 
+## Troubleshooting
+
+- The **Node.js 20 actions are deprecated** message is a **warning**, not the direct cause of the failed run.
+- If the workflow fails specifically at **Send digest email**, the digest was generated successfully and the failure happened when calling the **Resend API**.
+- The most common causes are:
+  - `RESEND_FROM_EMAIL` is not a sender allowed by your Resend account
+  - your Resend account is still under test-mode restrictions
+  - the recipient address is not allowed in your current Resend account state
+
+This workflow now uploads `follow-builders-delivery.json` in the artifact so the next run will show the exact Resend error message more clearly.
+
 ## Push this fork to your own GitHub repo
 
 If you cloned from upstream and want this in your own repository:
