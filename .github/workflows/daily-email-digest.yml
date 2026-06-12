@@ -60,7 +60,7 @@ jobs:
         shell: bash
         run: |
           set -o pipefail
-          node deliver.js --file "$RUNNER_TEMP/follow-builders-digest.txt" | tee "$RUNNER_TEMP/follow-builders-delivery.json"
+          node deliver.js --file "$RUNNER_TEMP/follow-builders-digest.txt" 2>&1 | tee "$RUNNER_TEMP/follow-builders-delivery.json"
 
       - name: Print delivery result on failure
         if: failure()

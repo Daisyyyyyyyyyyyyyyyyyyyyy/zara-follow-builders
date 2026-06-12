@@ -218,11 +218,13 @@ async function main() {
         break;
     }
   } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
     console.log(JSON.stringify({
       status: 'error',
       method: delivery.method,
-      message: err.message
+      message
     }));
+    console.error(`::error::${message}`);
     process.exit(1);
   }
 }
