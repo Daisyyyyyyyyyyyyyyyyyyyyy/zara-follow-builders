@@ -98,6 +98,12 @@ function extractTextContent(content) {
   return '';
 }
 
+function removeSkillFooter(text = '') {
+  return text
+    .replace(/\n{0,2}Generated through the Follow Builders skill:\s*https?:\/\/\S+\s*$/i, '')
+    .trim();
+}
+
 async function loadPreparedContext() {
   const { stdout, stderr } = await execFileAsync(process.execPath, [PREPARE_SCRIPT], {
     cwd: SCRIPT_DIR,
@@ -177,7 +183,7 @@ async function requestDigest(preparedContext) {
     throw new Error('GLM API returned an empty digest');
   }
 
-  return digest;
+  return removeSkillFooter(digest);
 }
 
 async function main() {
