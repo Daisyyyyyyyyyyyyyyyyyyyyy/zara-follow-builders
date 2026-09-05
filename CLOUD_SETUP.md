@@ -39,6 +39,17 @@ The workflow file is:
 .github/workflows/daily-email-digest.yml
 ```
 
+This repo also includes a watchdog workflow:
+
+```text
+.github/workflows/daily-email-watchdog.yml
+```
+
+It runs after the main digest window and checks whether **Daily Email Digest** has had a
+successful run in the last 36 hours. If not, it automatically triggers a fallback
+`workflow_dispatch` run so a missed GitHub schedule is less likely to cause multiple days
+of missed emails.
+
 Current cron:
 
 ```text
@@ -84,6 +95,8 @@ Depending on your Resend account state, test-mode restrictions may apply.
 ## Troubleshooting
 
 - The **Node.js 20 actions are deprecated** message is a **warning**, not the direct cause of the failed run.
+- If the **Daily Email Digest** workflow does not appear to run on schedule, check whether
+  **Daily Email Watchdog** triggered a fallback run later that day.
 - If the workflow fails specifically at **Send digest email**, the digest was generated successfully and the failure happened when calling the **Resend API**.
 - The most common causes are:
   - `RESEND_FROM_EMAIL` is not a sender allowed by your Resend account
