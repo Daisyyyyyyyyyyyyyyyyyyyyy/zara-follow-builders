@@ -32,6 +32,50 @@ const USER_DIR = process.env.FOLLOW_BUILDERS_USER_DIR || join(homedir(), '.follo
 const CONFIG_PATH = join(USER_DIR, 'config.json');
 const ENV_PATH = join(USER_DIR, '.env');
 
+function escapeHtml(value = '') {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function getLinkLabel(url = '') {
+  if (/x\.com|twitter\.com/i.test(url)) return 'X post';
+  if (/youtube\.com|youtu\.be/i.test(url)) return 'YouTube';
+  if (/anthropic\.com|claude\.com|blog/i.test(url)) return 'Article';
+  return 'Source link';
+}
+
+function renderDigestHtml(text = '') {
+  const escaped = escapeHtml(text).replace(/\r\n/g, '\n');
+  const withAnchors = escaped.replace(/(https?:\/\/[^\s<]+)/g, (url) => {
+    const safeUrl = url.replace(/&amp;/g, '&');
+    const label = getLinkLabel(safeUrl);
+    return `<a href="${escapeHtml(safeUrl)}" target="_blank" rel="noopener noreferrer">${label}</a>`;
+  });
+
+  const paragraphs = withAnchors
+    .split(/\n{2,}/)
+    .map((block) => block.trim())
+    .filter(Boolean)
+    .map((block) => `<p>${block.replace(/\n/g, '<br>')}</p>`)
+    .join('\n');
+
+  return [
+    '<!doctype html>',
+    '<html>',
+    '<body style="margin:0;padding:24px;background:#f6f7fb;color:#111827;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif;line-height:1.6;">',
+    '<div style="max-width:720px;margin:0 auto;background:#ffffff;border-radius:12px;padding:28px 24px;box-shadow:0 1px 3px rgba(0,0,0,0.08);">',
+    '<div style="font-size:14px;color:#6b7280;margin-bottom:16px;">AI Builders Digest</div>',
+    paragraphs,
+    '</div>',
+    '</body>',
+    '</html>'
+  ].join('');
+}
+
 // -- Read input --------------------------------------------------------------
 
 // The digest text can come from stdin, --message flag, or --file flag
@@ -128,6 +172,7 @@ async function sendTelegram(text, botToken, chatId) {
 // The user provides their own Resend API key and email address.
 async function sendEmail(text, apiKey, toEmail) {
   const fromEmail = process.env.RESEND_FROM_EMAIL || 'AI Builders Digest <onboarding@resend.dev>';
+  const html = renderDigestHtml(text);
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: {
@@ -140,7 +185,8 @@ async function sendEmail(text, apiKey, toEmail) {
       subject: `AI Builders Digest — ${new Date().toLocaleDateString('en-US', {
         weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
       })}`,
-      text: text
+      text: text,
+      html
     })
   });
 
