@@ -2,8 +2,9 @@ name: Daily Email Watchdog
 
 on:
   schedule:
-    # Run after the main digest cron should have completed.
-    - cron: '30 8 * * *'
+    # Run shortly after the main digest window so we can recover from a missed schedule
+    # before the email slips into the evening.
+    - cron: '5 7 * * *'
   workflow_dispatch:
 
 permissions:
@@ -37,6 +38,7 @@ jobs:
 
             const now = Date.now();
             const lookbackMs = 36 * 60 * 60 * 1000;
+            const todayKey = new Date().toISOString().slice(0, 10);
             const recentScheduledOrManualRuns = runs.data.workflow_runs.filter((run) => {
               const createdAt = Date.parse(run.created_at);
               return Number.isFinite(createdAt)
@@ -45,14 +47,22 @@ jobs:
             });
 
             const latestSuccessfulRun = recentScheduledOrManualRuns.find((run) => run.conclusion === 'success');
-            const shouldTrigger = !latestSuccessfulRun;
+            const successfulRunToday = recentScheduledOrManualRuns.find((run) => (
+              run.conclusion === 'success'
+              && typeof run.created_at === 'string'
+              && run.created_at.startsWith(todayKey)
+            ));
+            const shouldTrigger = !successfulRunToday;
 
             core.info(`Workflow state: ${workflow.data.state}`);
             core.info(`Recent candidate runs in last 36h: ${recentScheduledOrManualRuns.length}`);
             if (latestSuccessfulRun) {
               core.info(`Latest successful run: #${latestSuccessfulRun.run_number} at ${latestSuccessfulRun.created_at}`);
+            }
+            if (successfulRunToday) {
+              core.info(`A successful Daily Email Digest run already exists today: #${successfulRunToday.run_number} at ${successfulRunToday.created_at}`);
             } else {
-              core.warning('No successful Daily Email Digest run found in the last 36 hours.');
+              core.warning('No successful Daily Email Digest run found for today. Triggering fallback run.');
             }
 
             core.setOutput('should_trigger', shouldTrigger ? 'true' : 'false');

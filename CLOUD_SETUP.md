@@ -50,17 +50,18 @@ successful run in the last 36 hours. If not, it automatically triggers a fallbac
 `workflow_dispatch` run so a missed GitHub schedule is less likely to cause multiple days
 of missed emails.
 
-Current cron:
+Current digest cron:
 
 ```text
-0 7 * * *
+45 6 * * *
 ```
 
-GitHub Actions cron uses **UTC**. For Hong Kong time, `0 7 * * *` means **15:00 HKT every day**.
+GitHub Actions cron uses **UTC**. For Hong Kong time, `45 6 * * *` means **14:45 HKT every day**.
 
 This timing is intentional: the upstream `follow-builders` feed refresh runs later in the
-day (currently `17 6 * * *`, or **14:17 HKT**). Sending the email at **15:00 HKT** gives
-GitHub Actions enough buffer to pick up the freshly published feed instead of an older one.
+day (currently `17 6 * * *`, or **14:17 HKT**). Sending the email at **14:45 HKT** gives
+GitHub Actions some buffer to pick up the freshly published feed instead of an older one,
+while still landing earlier in the afternoon.
 
 If you want a different send time, edit the cron expression in that workflow file.
 
